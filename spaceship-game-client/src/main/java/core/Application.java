@@ -35,8 +35,9 @@ public class Application extends ApplicationListener {
 	private Batch batch;
 	private Camera camera2D;
 	
-	private Vector3f position;
-	private float dir = 0;
+	private Vector3f playerPosition;
+	private Vector3f playerDirection;
+	private Vector3f playerUp;
 	
 	@Override
 	public void onCreate() {
@@ -58,19 +59,20 @@ public class Application extends ApplicationListener {
 		batch = new Batch();
 		camera2D = new OrthographicCamera(new Vector2f(0, 0));
 		
-		position = new Vector3f(0, 10, 0);
+		playerPosition = new Vector3f(20, 10, 70);
+		playerDirection = new Vector3f(0, 0, -1);
+		playerUp = new Vector3f(0, 1, 0);
 	}
 	
 	@Override
 	public void onRender() {
 		move();
 		
-		cubeTransform.position = position;
+		cubeTransform.position = playerPosition;
 		cubeTransform.update();
 		
 		final var renderer = HuGame.getRenderer();
-		final var camera = renderer.getCamera();
-		camera.setPosition(new Vector3f(position.x, position.y + 5, position.z));
+		renderer.getCamera().setPosition(new Vector3f(40, 80, 40));
 		
 		renderer.draw(groundModel, groundTransform);
 		renderer.draw(cubeModel, cubeTransform);
@@ -89,33 +91,29 @@ public class Application extends ApplicationListener {
 	
 	private void move() {
 		final var input = HuGame.getInput();
+		final var camera = HuGame.getRenderer().getCamera();
 		
 		if (input.isKeyPressed(Key.D)) {
-			dir -= 1;
+			playerDirection.rotateAxis((float) Math.toRadians(-5), 0, 1, 0);
 		}
 		
 		if (input.isKeyPressed(Key.A)) {
-			dir += 1;
+			playerDirection.rotateAxis((float) Math.toRadians(5), 0, 1, 0);
 		}
 		
-		cubeTransform.rotation.y = dir;
+		var angle = playerDirection.angle(new Vector3f(0, 0, -1));
+		cubeTransform.rotation.y = (float) Math.toDegrees(angle);
 		
-		final float speed = 1;
-		final float dirRad = (float) Math.toRadians(dir - 90);
-		
-		float movementX = (float) Math.cos(dirRad) * speed;
-		float movementZ = (float) Math.sin(dirRad) * speed;
-		System.out.println(movementX + ", " + movementZ);
-		
-		if (input.isKeyPressed(Key.W)) {
-			position.x -= movementX;
-			position.z += movementZ;
+		if (input.isKeyPressed(Key.W)) {	
+			playerPosition.add(playerDirection.normalize().mul(1));
 		}
 		
 		if (input.isKeyPressed(Key.S)) {
-			position.x += movementX;
-			position.z -= movementZ;
+			playerPosition.sub(playerDirection.normalize().mul(1));
 		}
+		
+		camera.setPosition(new Vector3f(playerPosition.x, playerPosition.y + 5, playerPosition.z));
+		camera.lookInDirection(playerDirection);
 	}
 	
 }
