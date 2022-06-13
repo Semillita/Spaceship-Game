@@ -18,6 +18,8 @@ import io.semillita.hugame.window.WindowConfiguration;
 
 public class Application extends ApplicationListener {
 
+	private static final float ROTATION_SPEED = 2;
+	
 	public static void main(String[] args) {
 		var app = new Application();
 
@@ -94,15 +96,15 @@ public class Application extends ApplicationListener {
 		final var camera = HuGame.getRenderer().getCamera();
 		
 		if (input.isKeyPressed(Key.D)) {
-			playerDirection.rotateAxis((float) Math.toRadians(-5), 0, 1, 0);
+			playerDirection.rotateAxis((float) Math.toRadians(-ROTATION_SPEED), 0, 1, 0);
 		}
 		
 		if (input.isKeyPressed(Key.A)) {
-			playerDirection.rotateAxis((float) Math.toRadians(5), 0, 1, 0);
+			playerDirection.rotateAxis((float) Math.toRadians(ROTATION_SPEED), 0, 1, 0);
 		}
 		
-		var angle = playerDirection.angle(new Vector3f(0, 0, -1));
-		cubeTransform.rotation.y = (float) Math.toDegrees(angle);
+		var angle = (float) Math.toDegrees(playerDirection.angle(new Vector3f(0, 0, -1)));
+		cubeTransform.rotation.y = (playerDirection.x < 0) ? angle : 360 - angle;
 		
 		if (input.isKeyPressed(Key.W)) {	
 			playerPosition.add(playerDirection.normalize().mul(1));
