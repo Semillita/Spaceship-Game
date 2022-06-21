@@ -1,5 +1,8 @@
 package core;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -15,6 +18,7 @@ import io.semillita.hugame.graphics.Textures;
 import io.semillita.hugame.input.Key;
 import io.semillita.hugame.util.Transform;
 import io.semillita.hugame.window.WindowConfiguration;
+import net.NetUnit;
 
 public class Application extends ApplicationListener {
 
@@ -41,6 +45,11 @@ public class Application extends ApplicationListener {
 	private Vector3f playerDirection;
 	private Vector3f playerUp;
 	
+	private NetUnit netUnit;
+	private List<List<Vector3f>> otherPlayers;
+	
+	int i = 0;
+	
 	@Override
 	public void onCreate() {
 		cookieTexture = Textures.get("/cookies.jpg");
@@ -64,10 +73,19 @@ public class Application extends ApplicationListener {
 		playerPosition = new Vector3f(20, 10, 70);
 		playerDirection = new Vector3f(0, 0, -1);
 		playerUp = new Vector3f(0, 1, 0);
+		
+		netUnit = new NetUnit();
+		netUnit.listenForUpdates((players) -> this.otherPlayers = players);
+		otherPlayers = new ArrayList<>();
 	}
 	
 	@Override
 	public void onRender() {
+		i++;
+		if (i % 1 == 0) {
+			netUnit.upload(playerPosition, playerDirection);
+		}
+		
 		move();
 		
 		cubeTransform.position = playerPosition;
@@ -78,6 +96,13 @@ public class Application extends ApplicationListener {
 		
 		renderer.draw(groundModel, groundTransform);
 		renderer.draw(cubeModel, cubeTransform);
+		
+		// Render other players
+		for (var p : otherPlayers) {
+			var yRotation = getAngleAroundY(p.get(1));
+			renderer.draw(cubeModel, new Transform(p.get(0), new Vector3f(0, yRotation, 0), new Vector3f(5, 5, 20)));
+		}
+		
 		renderer.renderModels();
 		
 		batch.begin();
@@ -88,6 +113,7 @@ public class Application extends ApplicationListener {
 	
 	@Override
 	public boolean onClose() {
+		netUnit.close();
 		return true;
 	}
 	
@@ -103,8 +129,9 @@ public class Application extends ApplicationListener {
 			playerDirection.rotateAxis((float) Math.toRadians(ROTATION_SPEED), 0, 1, 0);
 		}
 		
-		var angle = (float) Math.toDegrees(playerDirection.angle(new Vector3f(0, 0, -1)));
-		cubeTransform.rotation.y = (playerDirection.x < 0) ? angle : 360 - angle;
+//		var angle = (float) Math.toDegrees(playerDirection.angle(new Vector3f(0, 0, -1)));
+//		cubeTransform.rotation.y = (playerDirection.x < 0) ? angle : 360 - angle;
+		cubeTransform.rotation.y = getAngleAroundY(playerDirection);
 		
 		if (input.isKeyPressed(Key.W)) {	
 			playerPosition.add(playerDirection.normalize().mul(1));
@@ -116,6 +143,11 @@ public class Application extends ApplicationListener {
 		
 		camera.setPosition(new Vector3f(playerPosition.x, playerPosition.y + 5, playerPosition.z));
 		camera.lookInDirection(playerDirection);
+	}
+	
+	private float getAngleAroundY(Vector3f direction) {
+		var smallestAngle = (float) Math.toDegrees(direction.angle(new Vector3f(0, 0, -1)));
+		return (direction.x < 0) ? smallestAngle : 360 - smallestAngle;
 	}
 	
 }
